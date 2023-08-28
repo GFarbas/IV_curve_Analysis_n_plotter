@@ -360,6 +360,9 @@ def smoothen_EQE_derive(df2,a=3):
         new_curve = pd.DataFrame({"x": x, "y": smooth_y})
         return new_curve
 
+def include_variations(df, compare_variations, compare_IDs):
+    df['Variations'] = df['Sample'].apply(lambda x:compare_variations[compare_IDs.index(x)] if x in compare_IDs else 'NA')
+    return df
 
 def plot_iv(title, x_title, y_title, x, y):
     # Plot the points
@@ -456,26 +459,12 @@ def plot_all_boxplots_per_sample(df,parameter_to_plot,all_sample_IDs,versuchspla
     eta_index = parameter_to_plot.index('eta in %')
     parameter_to_plot.pop(eta_index)
     parameter_to_plot.insert(3, 'eta in %')
-    labels = all_sample_IDs  #df['Sample'].tolist()
-    print(parameter_to_plot)
-    print(all_sample_IDs)
-    #for var in variations:
-
-    #sample_filter = [[] for _ in range(len(all_sample_IDs))]
     sample_transposed = pd.DataFrame()
-    #title = []
-    #a = 0
-    #b = 0
-    fs = 8  # fontsize
-    plot_individual_plots =0
+    plot_individual_plots =1
     if plot_individual_plots ==1:
         for parameter in parameter_to_plot:
             for sample_i in all_sample_IDs:
-                print(parameter)
-                print(sample_i)
-                #filter values filtered_df = df.loc[df['columnA'] == '50', 'columnC']  #gets values in column C
                 sample_transposed[sample_i]= (df.loc[df['Sample'] == sample_i, parameter])
-                print(sample_transposed)
             plot_data = pd.DataFrame(sample_transposed, columns=all_sample_IDs).astype(float)
             plt.title(versuchsplan)
             plt.boxplot(plot_data)
@@ -493,15 +482,20 @@ def plot_all_boxplots_per_sample(df,parameter_to_plot,all_sample_IDs,versuchspla
     for i, parameter in enumerate(parameter_to_plot):
         for sample_i in all_sample_IDs:
             sample_transposed[sample_i] = df.loc[df['Sample'] == sample_i, parameter]
-            plot_data = pd.DataFrame(sample_transposed, columns=all_sample_IDs).astype(float)
-            print(sample_transposed)
-            axs[i // 3, i % 3].boxplot(plot_data.iloc[:, 0:2].values)
-            axs[i // 3, i % 3].set_title(versuchsplan)
-            axs[i // 3, i % 3].set_ylabel(parameter)
-            #all_sample_x=(all_sample_IDs[0],all_sample_IDs[1])
-            axs[i // 3, i % 3].set_xticks([1, 2])
-            axs[i // 3, i % 3].set_xticklabels(list(all_sample_IDs), rotation=45, ha="right")
+        plot_data = pd.DataFrame(sample_transposed, columns=all_sample_IDs).astype(float)
+        axs[i // 3, i % 3].boxplot(plot_data.iloc[:, 0:2].values)
+        print(len(plot_data))
+        print(parameter)
+        print(plot_data.iloc[:, 0:2].values)
+        axs[i // 3, i % 3].set_title(versuchsplan)
+        axs[i // 3, i % 3].set_ylabel(parameter)
+        #all_sample_x=(all_sample_IDs[0],all_sample_IDs[1])
+        axs[i // 3, i % 3].set_xticks([1, 2])
+        axs[i // 3, i % 3].set_xticklabels(list(all_sample_IDs), rotation=45, ha="right")
+        print('-----------plot data: ---------')
+
+        print(plot_data.to_string())
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
     plt.show()
-    plt.savefig()
+    plt.savefig('plt_summary_' + versuchsplan + '.png')
 

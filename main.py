@@ -31,17 +31,10 @@ from tkinter.filedialog import askdirectory
 import Data_functions
 
 global save_results_to_txt,id_string,cell_number, save_plots,plot_all_IV_in_One,plot_dark_IVs,plot_light_IVs
-
-
-compare_samples = 1  ##To compare samples , This adds the name of the variation to specific IDs
-if compare_samples== 1:
-    group_variations=0
-    compare_variation =['var1', 'var2']   #       compare_variation =['var1', 'var2']   #  'ID 2-203-5-2'--> var1
-    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']   #    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']
-    if group_variations ==1: #Should the samples be compared regardles of sample ID
-
-
+global compare_variation,compare_IDs
 '''Select variables for saving and showing plots'''
+'''----RELEVANT FOR USER!!-----'''
+search_for_directory = 0
 versuchsplan ="VP1111"
 plot_light_IVs =0
 plot_dark_IVs =0
@@ -49,12 +42,18 @@ plot_all_IV_in_One =0
 save_plots = 0  #saves the plots but does not show them
 save_results_to_txt = 1  # Saves all results in a txt file
 boxplots=1
+compare_samples = 1  ##To compare samples , This adds the name of the variation to specific IDs
+if compare_samples== 1:
+    group_variations=0
+    compare_variation =['var1', 'var2']   #       compare_variation =['var1', 'var2']   #  'ID 2-203-5-2'--> var1
+    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']   #    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']
+#####
 
-
+'''----NOT RELEVANT FOR USER!!-----'''
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    search_for_directory = 0
+
     if search_for_directory == 1:
         working_directory = Data_functions.get_directory()
     else:
@@ -77,7 +76,7 @@ if __name__ == '__main__':
         iv_data = df.iloc[:, 0:2]  # get only the first two col
         ##Maybe later make a class with methods to to extract IV parameters from each IV
 
-        ##Plot IVs
+        '''##Plot IVs----------------------------'''
         if plot_light_IVs == 1:
             print("plot IVs on")
             graph_title = 'IV_' + id_string + '_#' + cell_number
@@ -100,7 +99,7 @@ if __name__ == '__main__':
     else:
         plt.show()
 
-    # FOR DARK IV processing-----------------------------------------------------------------------
+    '''# FOR DARK IV processing-----------------------------------------------------------------------'''
     #-------------------
     for dat_file, df in dataframes_dunkel.items():  # Print the DataFrames.
         # try:
@@ -134,20 +133,26 @@ if __name__ == '__main__':
     else:
         plt.show()
 
-    # FOR Statistics and parameter value saving-----------------------------------------------------------------------
+    '''# FOR Statistics and parameter value saving------------------------------------------------'''
     # -------------------
     #result_parameters = []
-    print('PARAMETERS')
+    print('---------------------PARAMETERS-------------------------')
 
     if save_results_to_txt == 1:
         results_statistics = pd.DataFrame()
         results_parameters = pd.DataFrame()
         for dat_file, df in dataframes_parameter.items():  # Print the DataFrames.
-            results_parameters = pd.concat([results_parameters, df], axis=0)
+            results_parameters = pd.concat([results_parameters, df], axis=0)  ##Append all data in one dataframe
         for dat_file, df in dataframe_statistics.items():  # Print the DataFrames.
-            results_statistics = pd.concat([results_statistics, df], axis=0)
-        results_parameters.insert(0, 'VP', versuchsplan)  ##insert array 'sample_ID' in the dataframe df_data, in column 0;
-        results_statistics.insert(0, 'VP', versuchsplan)  ##insert array 'sample_ID' in the dataframe df_data, in column 0;
+            results_statistics = pd.concat([results_statistics, df], axis=0)  ##Append all data in one dataframe
+        results_parameters.insert(0, 'VP', versuchsplan)  ##insert array 'VP' in the dataframe df_data, in column 0;
+        results_statistics.insert(0, 'VP', versuchsplan)  ##insert array 'VP' in the dataframe df_data, in column 0;
+        if compare_samples ==1:
+            compare_var_n_IDs = []
+            results_parameters= Data_functions.include_variations(results_parameters, compare_variation, compare_IDs)  ##generates a df adding the variation to each ID
+            results_statistics= Data_functions.include_variations(results_parameters, compare_variation, compare_IDs)  ##generates a df adding the variation to each ID
+            if group_variations == 1:  # Should the samples be compared regardles of sample ID
+                df = df.sort_values(by=['Variations'], ascending=True)
         print('result_parameters----end ')
         print(results_parameters.to_string())
         print('result_stats----end')

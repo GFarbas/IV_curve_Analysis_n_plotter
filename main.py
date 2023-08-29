@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter.filedialog import askdirectory
 
-import Data_functions
+import Data_functions, Plotting_functions
 
 global save_results_to_txt,id_string,cell_number, save_plots,plot_all_IV_in_One,plot_dark_IVs,plot_light_IVs
 global compare_variation,compare_IDs
@@ -45,8 +45,13 @@ boxplots=1
 compare_samples = 1  ##To compare samples , This adds the name of the variation to specific IDs
 if compare_samples== 1:
     group_variations=0
-    compare_variation =['var1', 'var2']   #       compare_variation =['var1', 'var2']   #  'ID 2-203-5-2'--> var1
-    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']   #    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']
+    compare_variation =['var1', 'var2', 'var3','var4']   #       compare_variation =['var1', 'var2']   #  'ID 2-203-5-2'--> var1
+    compare_IDs =['ID 2-203-5-2 ', 'ID 2-203-5-3 ', 'ID 2-233-10-0 ', 'ID 2-203-6-2 ']   #    compare_IDs =['ID 2-203-5-2', 'ID 2-203-5-3']
+    ##It can be that the strings have a space:
+    # To makeyou have the correct strings
+    # o to the end of the printed to console values and copy and paste them in the array
+    # this arrays are only for comparison of parameters. Not IVs
+
 #####
 
 '''----NOT RELEVANT FOR USER!!-----'''
@@ -80,7 +85,7 @@ if __name__ == '__main__':
         if plot_light_IVs == 1:
             print("plot IVs on")
             graph_title = 'IV_' + id_string + '_#' + cell_number
-            Data_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"], df["current density in mA/cm²"])
+            Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"], df["current density in mA/cm²"])
             if save_plots == 1:
                 plt.savefig('plt_' + graph_title + '.png')
             else:
@@ -93,7 +98,7 @@ if __name__ == '__main__':
         ### Saves a concatenated file for data
 
     if plot_light_IVs or save_plots  == 1:
-        Data_functions.plot_iv(graph_title_all, "Voltage [V]", "Current [mA/cm²]", IV_all_x, IV_all_y)
+        Plotting_functions.plot_iv(graph_title_all, "Voltage [V]", "Current [mA/cm²]", IV_all_x, IV_all_y)
     if save_plots == 1:
         plt.savefig('plt_all_' + versuchsplan + '.png')
     else:
@@ -113,7 +118,7 @@ if __name__ == '__main__':
         if plot_light_IVs == 1:
             print("plot IVs on")
             graph_title = 'IV_' + id_string + '_#' + cell_number
-            Data_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"],
+            Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"],
                                    df["current density in mA/cm²"])
             if save_plots == 1:
                 plt.savefig('plt_' + graph_title + '.png')
@@ -127,7 +132,7 @@ if __name__ == '__main__':
                 # print(graph_title_all)
         ### Saves a concatenated file for data
     if plot_light_IVs or save_plots  == 1:
-        Data_functions.plot_iv(graph_title_all, "Voltage [V]", "Current [mA/cm²]", IV_all_x, IV_all_y)
+        Plotting_functions.plot_iv(graph_title_all, "Voltage [V]", "Current [mA/cm²]", IV_all_x, IV_all_y)
     if save_plots == 1:
         plt.savefig('plt_all_' + versuchsplan + '.png')
     else:
@@ -150,9 +155,11 @@ if __name__ == '__main__':
         if compare_samples ==1:
             compare_var_n_IDs = []
             results_parameters= Data_functions.include_variations(results_parameters, compare_variation, compare_IDs)  ##generates a df adding the variation to each ID
-            results_statistics= Data_functions.include_variations(results_parameters, compare_variation, compare_IDs)  ##generates a df adding the variation to each ID
+            results_statistics= Data_functions.include_variations(results_statistics, compare_variation, compare_IDs)  ##generates a df adding the variation to each ID
             if group_variations == 1:  # Should the samples be compared regardles of sample ID
-                df = df.sort_values(by=['Variations'], ascending=True)
+                results_parameters = results_parameters.sort_values(by=['Variations'], ascending=True)
+                results_statistics = results_statistics.sort_values(by=['Variations'], ascending=True)
+
         print('result_parameters----end ')
         print(results_parameters.to_string())
         print('result_stats----end')
@@ -166,12 +173,11 @@ if __name__ == '__main__':
         txt_results.close()
 
     if boxplots==1:
-        all_sample_IDs = results_parameters['Sample'].drop_duplicates()  # gets only non repeated values of IDs
+        all_sample_IDs = results_parameters['Sample'].drop_duplicates()  # gets only non repeated values of IDs "duplicates double"
         #all_sample_IDs = np.array(all_sample_IDs)
         all_sample_IDs = list(all_sample_IDs)
-
         print(all_sample_IDs)
         parameters_to_plot= ["Jsc in mA/cm²", "Voc in mV", "FF in %", "Roc in Ohm*cm²", "Rsc in Ohm*cm²", "eta in %"]
-        Data_functions.plot_all_boxplots_per_sample(results_parameters,parameters_to_plot, all_sample_IDs, versuchsplan) #data, parameter,ID
+        Plotting_functions.plot_all_boxplots_per_sample(results_parameters,parameters_to_plot, all_sample_IDs, versuchsplan) #data, parameter,ID
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

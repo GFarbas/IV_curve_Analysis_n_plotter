@@ -28,7 +28,8 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter.filedialog import askdirectory
 
-import Data_functions, Plotting_functions
+import Data_functions, Plotting_functions, Extraction_methods
+import Extraction_methods
 
 global save_results_to_txt,id_string,cell_number, save_plots,plot_all_IV_in_One,plot_dark_IVs,plot_light_IVs
 global compare_variation,compare_IDs
@@ -40,9 +41,11 @@ plot_light_IVs =0
 plot_dark_IVs =0
 plot_all_IV_in_One =0
 save_plots = 0  #saves the plots but does not show them
-save_results_to_txt = 1  # Saves all results in a txt file
-boxplots=1
-compare_samples = 1  ##To compare samples , This adds the name of the variation to specific IDs
+save_results_to_txt = 0  # Saves all results in a txt file
+boxplots=0
+compare_samples = 0  ##To compare samples , This adds the name of the variation to specific IDs
+
+
 if compare_samples== 1:
     group_variations=0
     compare_variation =['var1', 'var2', 'var3','var4']   #       compare_variation =['var1', 'var2']   #  'ID 2-203-5-2'--> var1
@@ -79,7 +82,9 @@ if __name__ == '__main__':
         id_string, cell_number = df['Sample'][1] , df['cell#'][1]
                     #########  light IV ###############
         iv_data = df.iloc[:, 0:2]  # get only the first two col
-        ##Maybe later make a class with methods to to extract IV parameters from each IV
+        # extract IV parameters from each IV
+        sandia_fit = Extraction_methods.sandia_fit(df["voltage in V"], df["current density in mA/cm²"], noOfCells=1)
+        print(sandia_fit)
 
         '''##Plot IVs----------------------------'''
         if plot_light_IVs == 1:
@@ -113,7 +118,10 @@ if __name__ == '__main__':
         #########  light IV ###############
         iv_data = df.iloc[:, 0:2]  # get only the first two col
         ##Maybe later make a class with methods to to extract IV parameters from each IV
-
+        fit_dark_iv=1
+        if fit_dark_iv ==1:
+            params, _ = Extraction_methods.plot_dark_fit(df["voltage in V"],df["current density in mA/cm²"])
+            print(params)
         ##Plot IVs
         if plot_light_IVs == 1:
             print("plot IVs on")

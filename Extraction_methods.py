@@ -22,18 +22,22 @@ def sandia_fit(voltage, current, noOfCells=1):
     ''' SANDIA fit uses the light IV to extract the parameters
     Only works for the firs quadrant of the IV
     Thus only positive values f voltage and current'''
+    print('-----------------sandia_fit----------------')
     voltage, current = make_iv_fwd_n_positive(voltage, current)
     parameters = IV_parameter_extraction(voltage, current)
-    print(parameters)
+    #parameters from IV : voc, jsc, pmpp,ff,vmpp,impp
     ##make an array from Voc to Jsc for voltage and current
-    voc =1
-    voltage_sde = numpy.array(voltage[voltage[0 <= voltage <= voc]], dtype=numpy.float32)
-    current_sde = numpy.array(current[current[voltage[0 <= voltage <= voc]]], dtype=numpy.float32)
+    sandia_fit_results=[]
+    voc = parameters[0]
+    jsc= parameters[1]
+    v_mp_i_mp_tup = (parameters[4],parameters[5])
+    voltage, current = include_voc_in_iv(voltage, current, voc)
+
+    voltage_sde, current_sde = iv_only_quadrant_1(voltage, current)  ##saves array from jsc to voc as numpy
     tup_titles = ('I_ph           ', 'I_0          ', 'Rsh              ', 'Rs          ', 'nNsVth')
     #print(dir(pvlib.ivtools))  #prints all atributes
-
-    tuple_results_a = pvlib.ivtools.sde._sandia_simple_params(voltage_sde, current_sde, v_oc=None, i_sc=None, v_mp_i_mp=None,
-                                                   vlim=0.2, ilim=0.1)  # Makes fit saves it as txt
+    tuple_results_a = pvlib.ivtools.sde.fit_sandia_simple(voltage_sde, current_sde,v_oc=voc, i_sc=jsc, v_mp_i_mp=v_mp_i_mp_tup,
+                      vlim=0.2, ilim=0.1)  # Makes fit saves it as txt
     SDE_Sandia_fit = numpy.array(tuple_results_a, dtype=numpy.float32)  # Transforms array list into float
     photocurrent = SDE_Sandia_fit[0]
     saturation_current = SDE_Sandia_fit[1]
@@ -58,6 +62,8 @@ def sandia_fit(voltage, current, noOfCells=1):
         print(("--------------------------------"))
 
         sandia_fit_results = [photocurrent, saturation_current, idealityFactor, resistance_series, resistance_shunt]
+        print('-----------------sandia_fit----------------')
+
     return sandia_fit_results
 
 def dark_IV_extraction(voltage, current, Voc=600, noOfCells=1):
@@ -74,9 +80,16 @@ def dark_IV_extraction(voltage, current, Voc=600, noOfCells=1):
     return dark_IV_diode_parameters
 
 def dark_IV_fit(voltage, current, Voc=600, noOfCells=1):
+    # Fit the diode equation to the data
+    params, _ = optimize.curve_fit(
+        diode_equation_dark, voltage, current, p0=[1e-12, 1.5, 10000, 20, 300, 8.61733E-05 ])
+
+    # Print the saturation current and the ideality factor
+    print("Saturation current:", params[0])
+    print("Ideality factor:", params[1])
+    print("Series resistance:", params[5])
 
     # Fit the diode equation to the data
-    params, _ = optimize.curve_fit(diode_equation, voltage, current, p0=[Is, n, k, T, Rsh])
     '''Takes Voc as starting point to make a linear regression '''
     print('Dark IV extraction')
     photocurrent = 0
@@ -95,68 +108,41 @@ def diode_equation_dark(voltage, Is, n, Rsh, Rs, T=300,  k=8.61733E-05):
     current_a =Is * np.exp(((q * (voltage - current * Rs)) /(n*k*T))-1) - (voltage - current * Rs) / Rsh
     return current_a
 
-def plot_dark_fit(voltage,current):
-    # Fit the diode equation to the data
-    params, _ = optimize.curve_fit(
-        diode_equation_dark, voltage, current, p0=[1e-12, 1.5, 10000, 20, 300, 8.61733E-05 ])
 
-    # Print the saturation current and the ideality factor
-    print("Saturation current:", params[0])
-    print("Ideality factor:", params[1])
-    print("Series resistance:", params[5])
-
-    # Plot the data and the fitted curve
-    plt.plot(voltage, current, "o")
-    voltage_fit = np.linspace(0, 1, 1000)
-    current_fit = diode_equation_dark(voltage_fit, *params)
-    plt.plot(voltage_fit, current_fit)
-
-    # Label the axes
-    plt.xlabel("Voltage (V)")
-    plt.ylabel("Current (A)")
-
-    # Show the plot
-    plt.show()
-    return params, _
 
 def IV_parameter_extraction(voltage, current):
     print('IV_parameters_interpolated not ready')
     voltage, current = make_iv_fwd_n_positive(voltage, current)
     IV_parameters_interpolated = np.zeros(6)
-
     #Check if Voc already measured
-    jsc = current[voltage == 0]
+    jsc = float(current[voltage == 0])
     print('The Jsc measured at V=0:', jsc)
-
     voc = voltage[current == 0]
-    print(voc)
     if voc.empty:
         print('No Voc in file')
         ##get voltage around Jsc +- 5mA
         voltage_for_voc_extraction = voltage[current.between(-8, 8)]
-        print('voltage_for_voc_extraction')
-        print(voltage_for_voc_extraction)
         current_for_voc_extraction = current[current.between(-8, 8)]
-        print('current_voc')
-        print(current_for_voc_extraction)
         #extract Voc
         interpolator_voc = interp1d(current_for_voc_extraction,voltage_for_voc_extraction)  # Create an interpolator for the values.
         voc = float(interpolator_voc(0))  # Interpolate the y values.
-        print('voc: ', voc)
-        print('jsc: ', jsc)
-    pmpp = max(voltage*current)
-    ff = pmpp/(voc*jsc)
-    impp = current[(voltage*current)== pmpp]
-    vmpp = voltage[(voltage*current)== pmpp]
+    pmpp = float(max(voltage*current))
+    ff = float(pmpp/(voc*jsc))
+    impp = float(current[(voltage*current)== pmpp])
+    vmpp = float(voltage[(voltage*current)== pmpp])
 
     IV_parameters_interpolated[0] = voc
     IV_parameters_interpolated[1] = jsc
-    IV_parameters_interpolated[2] = pmpp
-    IV_parameters_interpolated[3] = ff
-    IV_parameters_interpolated[4] = vmpp
-    IV_parameters_interpolated[5] = impp
-
+    IV_parameters_interpolated[2] = (pmpp)
+    IV_parameters_interpolated[3] = (ff)
+    IV_parameters_interpolated[4] = (vmpp)
+    IV_parameters_interpolated[5] = (impp)
+    #parameters from IV : voc, jsc, pmpp,ff,vmpp,impp
+    print('parameters from IV :')
+    print('voc: ',round(voc,4), 'jsc: ', jsc,'pmpp: ', round(pmpp,3),'ff: ', round(ff,3),'vmpp: ',\
+          round(vmpp,3),'impp: ', (impp,3))
     return IV_parameters_interpolated  #
+
 
 def make_iv_fwd_n_positive(voltage, current):
     # flip the dataframe if saved in reverse bias
@@ -167,14 +153,44 @@ def make_iv_fwd_n_positive(voltage, current):
         voltage = voltage_fwd.reset_index(drop=True) #resets index values
         current = current_fwd.reset_index(drop=True)  # resets index values
         j_at_V = float(current[voltage == 0.2])  ##get J values around Voc= 0.2
-
         #print(j_at_V)
         if j_at_V < 0:
             current = current*-1  # resets index values
         #print(voltage_fwd)
     #plt.plot(voltage, current)
     #plt.show()
-    print(voltage.to_string())
-    print(current.to_string())
+   #print(voltage.to_string())
+    #print(current.to_string())
     return voltage, current
 
+
+def iv_only_quadrant_1(voltage,current):
+    print('----------iv_only_quadrant_1--------')
+    iv =pd.DataFrame()
+    iv['voltage'] = voltage
+    iv['current'] = current
+    iv =iv[iv>=0].dropna() #drop Nan values
+    voltage = numpy.array(iv['voltage'], dtype=numpy.float32)  #Save it a numpy array
+    current =numpy.array(iv['current'], dtype=numpy.float32)
+    print('----------iv_only_quadrant_1--------')
+    return voltage, current
+
+
+def include_voc_in_iv(voltage,current,voc):
+    print('include_voc_in_iv')
+    voltage = pd.DataFrame({'voltage': voltage })
+    #current = pd.DataFrame({'current': current})
+    #current = list(current)
+    iv =pd.DataFrame()
+    #print(voltage.to_string())
+    #print(current.to_string())
+    voltage.loc[len(voltage)] = voc  #include Voc
+    current.loc[len(current)] = 0.0  # include J value for Voc
+    # Sort the voltage dataframe and reset indexes
+    iv['voltage'] = voltage #add to df iv
+    iv['current'] = current #add to df iv
+    iv = iv.sort_values(by=['voltage'], ascending=True).reset_index(drop=True) ## sort df iv using the voltage column
+    #print(iv.to_string())
+    voltage=iv['voltage']  #Save it as Series
+    current=iv['current']  #Save it as Series
+    return voltage, current

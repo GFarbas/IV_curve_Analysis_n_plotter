@@ -164,7 +164,7 @@ def file_separation_IV(newFile):  ##should open a file containing the list of mo
     area = content[0].split(':')[2]
     name_ID_n_cell_no = area[1]
 
-    print('name_ID: ',name_ID,'; #cell#',cell, '; area: ', area)
+    #print('name_ID: ',name_ID,'; #cell#',cell, '; area: ', area)
     column_names = content[1]  # Get the column names from the first row of the list.
     column_names= column_names.split('\t')
     List1 = content[2:] # Remove the first rows from the list.
@@ -190,7 +190,7 @@ def file_separation_IV_parameters(newFile):  ##should open a file containing the
         #To get the IV parameters of each cell
     #print('name_n_area ',name_n_area)
     column_names = List1[0]  # Get the column names from the first row of the list.
-    print('column_names ',column_names)
+    #print('column_names ',column_names)
 
     column_names= column_names.split('\t')
     List1 = List1[1:] # Remove the first rows from the list.

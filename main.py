@@ -85,7 +85,6 @@ if __name__ == '__main__':
         # extract IV parameters from each IV
         sandia_fit = Extraction_methods.sandia_fit(df["voltage in V"], df["current density in mA/cm²"], noOfCells=1)
         print(sandia_fit)
-
         '''##Plot IVs----------------------------'''
         if plot_light_IVs == 1:
             print("plot IVs on")
@@ -120,8 +119,8 @@ if __name__ == '__main__':
         ##Maybe later make a class with methods to to extract IV parameters from each IV
         fit_dark_iv=1
         if fit_dark_iv ==1:
-            params, _ = Extraction_methods.plot_dark_fit(df["voltage in V"],df["current density in mA/cm²"])
-            print(params)
+            plot_dark= Plotting_functions.plot_dark_fit(df["voltage in V"],df["current density in mA/cm²"])
+            print(plot_dark)
         ##Plot IVs
         if plot_light_IVs == 1:
             print("plot IVs on")

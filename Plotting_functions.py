@@ -142,18 +142,3 @@ def plot_all_boxplots_per_sample(df,parameter_to_plot,all_sample_IDs,versuchspla
     plt.show()
     plt.savefig('plt_summary_' + versuchsplan + '.png')
 
-def plot_dark_fit(voltage,current):
-
-    # Plot the data and the fitted curve
-    plt.plot(voltage, current, "o")
-    voltage_fit = np.linspace(0, 1, 1000)
-    current_fit = Extraction_methods.diode_equation_dark(voltage_fit, *params)
-    plt.plot(voltage_fit, current_fit)
-
-    # Label the axes
-    plt.xlabel("Voltage (V)")
-    plt.ylabel("Current (A)")
-
-    # Show the plot
-    plt.show()
-    return plot_dark

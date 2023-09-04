@@ -9,6 +9,8 @@ import scipy.optimize as optimize
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
+import Plotting_functions
+
 date_object = datetime.date.today()
 from pvlib import pvsystem, ivtools
 
@@ -22,7 +24,7 @@ def sandia_fit(voltage, current, noOfCells=1):
     ''' SANDIA fit uses the light IV to extract the parameters
     Only works for the firs quadrant of the IV
     Thus only positive values f voltage and current'''
-    print('-----------------sandia_fit----------------')
+    print('-----------------sandia_fit-----            -----------')
     voltage, current = make_iv_fwd_n_positive(voltage, current)
     parameters = IV_parameter_extraction(voltage, current)
     #parameters from IV : voc, jsc, pmpp,ff,vmpp,impp
@@ -47,7 +49,7 @@ def sandia_fit(voltage, current, noOfCells=1):
     ThermV = temperature * boltzmannOverCharge
     idealityFactor = nNsVth / (noOfCells * ThermV)
     # Output-----
-    print_results = 0
+    print_results = 1
     if print_results == 1:
         print(("-----------SDE Sandia Fit---------------------"))
         print((tup_titles))
@@ -61,14 +63,14 @@ def sandia_fit(voltage, current, noOfCells=1):
         print(("--------------------------------"))
         print(("--------------------------------"))
 
-        sandia_fit_results = [photocurrent, saturation_current, idealityFactor, resistance_series, resistance_shunt]
-        print('-----------------sandia_fit----------------')
+    sandia_fit_results = [photocurrent, saturation_current, idealityFactor, resistance_series, resistance_shunt]
+    print('-----------------sandia_fit--out--------------')
 
     return sandia_fit_results
 
-def dark_IV_extraction(voltage, current, Voc=600, noOfCells=1):
+def dark_IV_linear_extraction(voltage, current, Voc=600, noOfCells=1):
     '''Takes Voc as starting point to make a linear regression '''
-    print('Dark IV extraction')
+    print('Dark IV lienar extraction')
     photocurrent = 0
     saturation_current = 0
     resistance_series = 0
@@ -77,14 +79,16 @@ def dark_IV_extraction(voltage, current, Voc=600, noOfCells=1):
     ThermV = 0
     idealityFactor = nNsVth / (noOfCells * ThermV)
     dark_IV_diode_parameters= [photocurrent, saturation_current, idealityFactor, resistance_series, resistance_shunt]
+    print('Dark IV extraction')
     return dark_IV_diode_parameters
 
 def dark_IV_fit(voltage, current, Voc=600, noOfCells=1):
-    # Fit the diode equation to the data
+    '''Fit the diode equation to the data '''
     params, _ = optimize.curve_fit(
         diode_equation_dark, voltage, current, p0=[1e-12, 1.5, 10000, 20, 300, 8.61733E-05 ])
 
     # Print the saturation current and the ideality factor
+    print("dark_IV_fit")
     print("Saturation current:", params[0])
     print("Ideality factor:", params[1])
     print("Series resistance:", params[5])
@@ -93,25 +97,38 @@ def dark_IV_fit(voltage, current, Voc=600, noOfCells=1):
     '''Takes Voc as starting point to make a linear regression '''
     print('Dark IV extraction')
     photocurrent = 0
-    saturation_current = 0
-    resistance_series = 0
-    resistance_shunt = 0
-    nNsVth = 0
-    ThermV = 0
-    idealityFactor = nNsVth / (noOfCells * ThermV)
+    saturation_current = params[0]
+    resistance_series = params[5]
+    resistance_shunt =params[3]
+    #nNsVth = 0
+    #ThermV = 0
+    idealityFactor = params[1] #nNsVth / (noOfCells * ThermV)
     dark_IV_diode_parameters= [photocurrent, saturation_current, idealityFactor, resistance_series, resistance_shunt]
+    voltage_fit = np.linspace(0, 1, 1000)
+    current_fit = diode_equation_dark(voltage_fit, *params)
+    #dark_iv_fit_data = pd.DataFrame({'voltage_dark_fit':voltage_fit, 'current_dark_fit':current_fit})
+    Plotting_functions.plot_iv('dark IV fit','voltage','current',voltage, current)
+    Plotting_functions.plot_iv('dark IV fit','voltage','current',voltage_fit, current_fit)
+    print("dark_IV_fit")
+
     return dark_IV_diode_parameters
+
 
 def diode_equation_dark(voltage, Is, n, Rsh, Rs, T=300,  k=8.61733E-05):
     k= boltzmannOverCharge
-    current = current = np.zeros_like(voltage)
+    current = np.zeros_like(voltage)
     current_a =Is * np.exp(((q * (voltage - current * Rs)) /(n*k*T))-1) - (voltage - current * Rs) / Rsh
     return current_a
 
+def diode_equation_light(voltage, Is, n, Rsh, Rs,current_photo=0, T=300,  k=8.61733E-05):
+    k= boltzmannOverCharge
+    current = np.zeros_like(voltage)
+    current_a = current_photo - Is * np.exp(((q * (voltage - current * Rs)) /(n*k*T))-1) - (voltage - current * Rs) / Rsh
+    return current_a
 
 
 def IV_parameter_extraction(voltage, current):
-    print('IV_parameters_interpolated not ready')
+    print('IV_parameters_interpolated_ self made')
     voltage, current = make_iv_fwd_n_positive(voltage, current)
     IV_parameters_interpolated = np.zeros(6)
     #Check if Voc already measured
@@ -141,6 +158,7 @@ def IV_parameter_extraction(voltage, current):
     print('parameters from IV :')
     print('voc: ',round(voc,4), 'jsc: ', jsc,'pmpp: ', round(pmpp,3),'ff: ', round(ff,3),'vmpp: ',\
           round(vmpp,3),'impp: ', (impp,3))
+
     return IV_parameters_interpolated  #
 
 
@@ -172,7 +190,7 @@ def iv_only_quadrant_1(voltage,current):
     iv =iv[iv>=0].dropna() #drop Nan values
     voltage = numpy.array(iv['voltage'], dtype=numpy.float32)  #Save it a numpy array
     current =numpy.array(iv['current'], dtype=numpy.float32)
-    print('----------iv_only_quadrant_1--------')
+    print('----------iv_only_quadrant_out--------')
     return voltage, current
 
 
@@ -193,4 +211,6 @@ def include_voc_in_iv(voltage,current,voc):
     #print(iv.to_string())
     voltage=iv['voltage']  #Save it as Series
     current=iv['current']  #Save it as Series
+    print('include_voc_in_out')
+
     return voltage, current

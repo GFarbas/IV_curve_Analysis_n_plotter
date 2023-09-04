@@ -119,8 +119,9 @@ if __name__ == '__main__':
         ##Maybe later make a class with methods to to extract IV parameters from each IV
         fit_dark_iv=1
         if fit_dark_iv ==1:
-            plot_dark= Plotting_functions.plot_dark_fit(df["voltage in V"],df["current density in mA/cm²"])
-            print(plot_dark)
+            ##fit the dark IV to the SDE
+            dark_IV_diode_parameters= Extraction_methods.dark_IV_fit(df["voltage in V"],df["current density in mA/cm²"])
+
         ##Plot IVs
         if plot_light_IVs == 1:
             print("plot IVs on")

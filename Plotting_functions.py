@@ -8,10 +8,14 @@ def plot_iv(title, x_title, y_title, x, y):
     # Plot the points
     try:
         curve_labels = title
-        if y[50] < -10:  #if the measurement at index 50 is below -10mA/cm2
+        if y[1] < -1:  #if the measurement at index 50 is below -10mA/cm2
             plt.plot(x, y, label=curve_labels, alpha=0.8)
             plt.ylabel(y_title)
             plt.axis([-0.4, 1, -45, 50])
+        elif y[1] > 1:  # if the measurement at index 50 is below -10mA/cm2
+            plt.plot(x, y, label=curve_labels, alpha=0.8)
+            plt.ylabel(y_title)
+            plt.axis([-0.2, 1.5, 45, -45])
         else:
             plt.semilogy(x, y, label=curve_labels, alpha=0.8)
             plt.ylabel('ln_'+ y_title)
@@ -29,9 +33,14 @@ def plot_iv(title, x_title, y_title, x, y):
         plt.title("all IV curve")
         plt.xlabel("Voltage [V]")
         plt.ylabel("Current Density [mA/cm2]")
-        plt.axvline(x=0, label=curve_labels[1], linestyle="solid", color="black",linewidth=1)
-        plt.axhline(y=0, label=curve_labels[1], linestyle="solid", color="black",linewidth=1)
-        plt.axis([-0.4, 1, -45, 50])
+        try:
+            plt.axvline(x=0, label=curve_labels[1], linestyle="solid", color="black",linewidth=1)
+            plt.axhline(y=0, label=curve_labels[1], linestyle="solid", color="black",linewidth=1)
+            plt.axis([-0.4, 1, -45, 50])
+        except:
+            plt.axvline(x=0,  linestyle="solid", color="black",linewidth=1)
+            plt.axhline(y=0,  linestyle="solid", color="black",linewidth=1)
+            plt.axis([-0.2, 1.5, 45, -45])
 
 
 def plot_EQE_graph(title, x_title,y_title,x,y):

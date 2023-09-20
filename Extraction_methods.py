@@ -38,6 +38,8 @@ def sandia_fit(voltage, current, noOfCells=1):
     voltage_sde, current_sde = iv_only_quadrant_1(voltage, current)  ##saves array from jsc to voc as numpy
     tup_titles = ('I_ph           ', 'I_0          ', 'Rsh              ', 'Rs          ', 'nNsVth')
     #print(dir(pvlib.ivtools))  #prints all atributes
+    print("--------------------    voltage_sde")
+    print(voltage_sde, current_sde,voc, jsc, v_mp_i_mp_tup)
     tuple_results_a = pvlib.ivtools.sde.fit_sandia_simple(voltage_sde, current_sde,v_oc=voc, i_sc=jsc, v_mp_i_mp=v_mp_i_mp_tup,
                       vlim=0.2, ilim=0.1)  # Makes fit saves it as txt
     SDE_Sandia_fit = numpy.array(tuple_results_a, dtype=numpy.float32)  # Transforms array list into float
@@ -132,10 +134,20 @@ def IV_parameter_extraction(voltage, current):
     voltage, current = make_iv_fwd_n_positive(voltage, current)
     IV_parameters_interpolated = np.zeros(6)
     #Check if Voc already measured
-    jsc = float(current[voltage == 0])
+
+    jsc = (current[voltage == 0])
+    if jsc.empty:  ##Obtain Voc if it is not included
+        print('No Jsc in file')
+        ##get current around Voc +- 0.1 V
+        voltage_for_jsc_extraction = voltage[voltage.between(-4, 4)]
+        current_for_jsc_extraction = current[voltage.between(-4, 4)]
+        #extract Voc
+        interpolator_jsc = interp1d(voltage_for_jsc_extraction,current_for_jsc_extraction)  # Create an interpolator for the values.
+        jsc = float(interpolator_jsc(0))  # Interpolate the y values.
+    jsc = float(jsc)  #To make it mA
     print('The Jsc measured at V=0:', jsc)
     voc = voltage[current == 0]
-    if voc.empty:
+    if voc.empty:  ##Obtain Voc if it is not included
         print('No Voc in file')
         ##get voltage around Jsc +- 5mA
         voltage_for_voc_extraction = voltage[current.between(-8, 8)]

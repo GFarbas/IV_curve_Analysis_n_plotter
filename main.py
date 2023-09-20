@@ -28,20 +28,22 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter.filedialog import askdirectory
 
+import Data_function_simulated
 import Data_functions, Plotting_functions, Extraction_methods
 import Extraction_methods
 
 global save_results_to_txt,id_string,cell_number, save_plots,plot_all_IV_in_One,plot_dark_IVs,plot_light_IVs
-global compare_variation,compare_IDs
+global compare_variation,compare_IDs, simulation
 '''Select variables for saving and showing plots'''
 '''----RELEVANT FOR USER!!-----'''
-search_for_directory = 0
-versuchsplan ="VP1111"
-plot_light_IVs =0
+search_for_directory = 1
+versuchsplan ="Simulations"
+simulation = 1
+plot_light_IVs =1
 plot_dark_IVs =0
 plot_all_IV_in_One =0
 save_plots = 0  #saves the plots but does not show them
-save_results_to_txt = 0  # Saves all results in a txt file
+save_results_to_txt = 0  # Saves   all results in a txt file
 boxplots=0
 compare_samples = 0  ##To compare samples , This adds the name of the variation to specific IDs
 
@@ -67,7 +69,11 @@ if __name__ == '__main__':
     else:
         working_directory = os.getcwd()
     #Takes all files in the directory and makes a list of dataframes for all files
-    dataframes_hell, dataframes_dunkel, dataframes_parameter,dataframe_statistics = Data_functions.IV_file(working_directory)
+    if simulation==1:
+        dataframes_hell, simu_parameters = Data_function_simulated.IV_file_simu(working_directory)
+    else:
+        dataframes_hell, dataframes_dunkel, dataframes_parameter,dataframe_statistics = Data_functions.IV_file(working_directory)
+
     #results = pd.DataFrame(columns=[])  ### for final results
 
     graph_title_all = []  ##List for the leayend of each EQE for plot
@@ -79,25 +85,40 @@ if __name__ == '__main__':
     for dat_file, df in dataframes_hell.items():  # Print the DataFrames.
         # try:
         print(f"File name: {dat_file}")
-        id_string, cell_number = df['Sample'][1] , df['cell#'][1]
-                    #########  light IV ###############
-        iv_data = df.iloc[:, 0:2]  # get only the first two col
-        # extract IV parameters from each IV
-        sandia_fit = Extraction_methods.sandia_fit(df["voltage in V"], df["current density in mA/cm²"], noOfCells=1)
+        if simulation == 1:
+            match = re.search(r'Rp_(.*?)\.txt', dat_file)  #find the ID
+            id_string = match.group(1)
+            match2 = re.search(r'W_(.*?)K_', dat_file)  # find the ID
+            temp_str = match2.group(1)
+            match3 = re.search(r'IV-T_(.*?)W_', dat_file)  # find the ID
+            irr_str = match3.group(1)
+            cell_number = "00"
+            df["CURRENT_mA"] =df["CURRENT"]*1000
+            voltage_str = "VOLTAGE"
+            current_str = "CURRENT_mA"
+            graph_title = temp_str+"_"+irr_str+"_"+id_string
+        elif simulation == 0:
+            id_string, cell_number = df['Sample'][1] , df['cell#'][1]
+            iv_data = df.iloc[:, 0:2]  # get only the first two col
+            voltage_str ="voltage in V"
+            current_str ="current density in mA/cm²"
+            graph_title = 'IV_' + id_string + '_#' + cell_number
+
+    # extract IV parameters from each IV
+        sandia_fit = Extraction_methods.sandia_fit(df[voltage_str], df[current_str], noOfCells=1)
         print(sandia_fit)
         '''##Plot IVs----------------------------'''
         if plot_light_IVs == 1:
             print("plot IVs on")
-            graph_title = 'IV_' + id_string + '_#' + cell_number
-            Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"], df["current density in mA/cm²"])
+            Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df[voltage_str], df[current_str])
             if save_plots == 1:
                 plt.savefig('plt_' + graph_title + '.png')
             else:
                 plt.show()
             if plot_all_IV_in_One == 1:
                 graph_title_all.append(graph_title)  ##appends all nm lists into the list for plotting
-                IV_all_x.append(df["voltage in V"].tolist())  ##appends all nm lists into the list for plotting
-                IV_all_y.append(df["current density in mA/cm²"].to_list())  ##appends all EQEs lists into the list for plotting
+                IV_all_x.append(df[voltage_str].tolist())  ##appends all nm lists into the list for plotting
+                IV_all_y.append(df[current_str].to_list())  ##appends all EQEs lists into the list for plotting
                 #print(graph_title_all)
         ### Saves a concatenated file for data
 
@@ -110,34 +131,35 @@ if __name__ == '__main__':
 
     '''# FOR DARK IV processing-----------------------------------------------------------------------'''
     #-------------------
-    for dat_file, df in dataframes_dunkel.items():  # Print the DataFrames.
-        # try:
-        print(f"File name: {dat_file}")
-        id_string, cell_number = df['Sample'][1], df['cell#'][1]
-        #########  light IV ###############
-        iv_data = df.iloc[:, 0:2]  # get only the first two col
-        ##Maybe later make a class with methods to to extract IV parameters from each IV
-        fit_dark_iv=1
-        if fit_dark_iv ==1:
-            ##fit the dark IV to the SDE
-            dark_IV_diode_parameters= Extraction_methods.dark_IV_fit(df["voltage in V"],df["current density in mA/cm²"])
+    if simulation ==0:
+        for dat_file, df in dataframes_dunkel.items():  # Print the DataFrames.
+            # try:
+            print(f"File name: {dat_file}")
+            id_string, cell_number = df['Sample'][1], df['cell#'][1]
+            #########  light IV ###############
+            iv_data = df.iloc[:, 0:2]  # get only the first two col
+            ##Maybe later make a class with methods to to extract IV parameters from each IV
+            fit_dark_iv=1
+            if fit_dark_iv ==1:
+                ##fit the dark IV to the SDE
+                dark_IV_diode_parameters= Extraction_methods.dark_IV_fit(df["voltage in V"],df["current density in mA/cm²"])
 
-        ##Plot IVs
-        if plot_light_IVs == 1:
-            print("plot IVs on")
-            graph_title = 'IV_' + id_string + '_#' + cell_number
-            Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"],
-                                   df["current density in mA/cm²"])
-            if save_plots == 1:
-                plt.savefig('plt_' + graph_title + '.png')
-            else:
-                plt.show()
-            if plot_all_IV_in_One == 1:
-                graph_title_all.append(graph_title)  ##appends all nm lists into the list for plotting
-                IV_all_x.append(df["voltage in V"].tolist())  ##appends all nm lists into the list for plotting
-                IV_all_y.append(
-                    df["current density in mA/cm²"].to_list())  ##appends all EQEs lists into the list for plotting
-                # print(graph_title_all)
+            ##Plot IVs
+            if plot_light_IVs == 1:
+                print("plot IVs on")
+                graph_title = 'IV_' + id_string + '_#' + cell_number
+                Plotting_functions.plot_iv(graph_title, "Voltage [V]", "Current [mA/cm²]", df["voltage in V"],
+                                       df["current density in mA/cm²"])
+                if save_plots == 1:
+                    plt.savefig('plt_' + graph_title + '.png')
+                else:
+                    plt.show()
+                if plot_all_IV_in_One == 1:
+                    graph_title_all.append(graph_title)  ##appends all nm lists into the list for plotting
+                    IV_all_x.append(df["voltage in V"].tolist())  ##appends all nm lists into the list for plotting
+                    IV_all_y.append(
+                        df["current density in mA/cm²"].to_list())  ##appends all EQEs lists into the list for plotting
+                    # print(graph_title_all)
         ### Saves a concatenated file for data
     if plot_light_IVs or save_plots  == 1:
         Plotting_functions.plot_iv(graph_title_all, "Voltage [V]", "Current [mA/cm²]", IV_all_x, IV_all_y)
